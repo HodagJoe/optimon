@@ -1,0 +1,43 @@
+
+## PULL SEISMOGRAPH DATA
+sftp -pr myshake@seismograph.cs.wisc.edu:/opt/data/archive ~/DataFiles/RShake/
+
+## SYNC DATA WITH INFLUXDB (uses timestamp checkpoints since last sync)
+DataFiles: ./dailyformat.sh
+DataFiles: ./dailyformat_seis.sh
+
+## ACCESS RASPBERRY SHAKE:
+http://128.105.102.23/config
+
+## PULL POLLS FROM LAB MACHINE - (handled by hourly_pull.sh)
+rsync -av wej@nms-lab.boreas.net:~/joec/longhaul/ ~/DataFiles/nmslab/
+
+
+## BOOT UP DOCKER
+systemctl --user start docker
+docker start influxdb
+
+## CREATE INFLUXDB
+docker run --name influxdb -d -v influxdb:/var/lib/ipsdb -p 8086:8086 quay.io/influxdb/influxdb:v2.0.3
+  
+  
+## INFLUXDB  TOKEN
+  9PVO0399Napqv2fwq-Q1TDpokavVLwO9sZjePUDeiGImJgcocFAdfJitJKbOdhB1Td_NokXm0DjZhuRQ4PAWaA==
+  
+  
+## HTTP WRITE FOR INFLUX
+  curl --request POST "http://localhost:8086/api/v2/write?org=IPS_org&bucket=longhaul_bucket&precision=ns" \
+  --header "Authorization: Token 9PVO0399Napqv2fwq-Q1TDpokavVLwO9sZjePUDeiGImJgcocFAdfJitJKbOdhB1Td_NokXm0DjZhuRQ4PAWaA==" \
+  --data-binary @
+  
+## WEBHOOK FOR SLACK
+curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' https://hooks.slack.com/services/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
+
+
+##INFLUXDB MAKE USER
+docker exec -it influxdb /bin/bash
+influx user create -n johndoe -p PaSsWoRd -o example-org
+
+##MIB GREP
+grep -r "Pmd" .
+
